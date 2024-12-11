@@ -35,7 +35,12 @@
 
 #pragma once
 
+#include <sys/types.h>
+#include <errno.h>
+#include <iostream>
 #include <set>
+#include <algorithm>
+#include <math.h>
 
 #include "effectfactories.h"
 
@@ -61,6 +66,7 @@ class  EffectManager : public IJSONSerializable
     uint _effectStartTime;
     uint _effectInterval = 0;
     bool _bPlayAll;
+    bool _bShowVU = true;
     bool _clearTempEffectWhenExpired = false;
     std::atomic_bool _newFrameAvailable = false;
     int _effectSetVersion = 1;
@@ -102,8 +108,8 @@ class  EffectManager : public IJSONSerializable
     // Implementation is in effects.cpp
     void LoadJSONAndMissingEffects(const JsonArrayConst& effectsArray);
 
-    static void SaveCurrentEffectIndex();
-    static bool ReadCurrentEffectIndex(size_t& index);
+    void SaveCurrentEffectIndex();
+    bool ReadCurrentEffectIndex(size_t& index);
 
     void ClearEffects()
     {
@@ -114,7 +120,7 @@ public:
     static const uint csFadeButtonSpeed = 15 * 1000;
     static const uint csSmoothButtonSpeed = 60 * 1000;
 
-    EffectManager(const std::shared_ptr<LEDStripEffect>& effect, std::vector<std::shared_ptr<GFXBase>>& gfx)
+    EffectManager(std::shared_ptr<LEDStripEffect> effect, std::vector<std::shared_ptr<GFXBase>>& gfx)
         : _gfx(gfx)
     {
         debugV("EffectManager Splash Effect Constructor");
@@ -147,19 +153,9 @@ public:
         ClearEffects();
     }
 
-    // SetTempEffect - Sets a temporary effect to be played until remote changes it.
-    //                 The effect must have already had its Init() function called.
-
-    void SetTempEffect(std::shared_ptr<LEDStripEffect> effect)
+    std::shared_ptr<GFXBase> GetBaseGraphics()
     {
-        _tempEffect = effect;
-    }
-
-    // GetBaseGraphics - Returns the vector of GFXBase objects that the effects use to draw
-    
-    std::vector<std::shared_ptr<GFXBase>> & GetBaseGraphics()
-    {
-        return _gfx;
+        return _gfx[0];
     }
 
     bool IsNewFrameAvailable() const
@@ -226,7 +222,7 @@ public:
         {
             // Try to load effect enabled state from JSON also, default to "enabled" otherwise
             JsonArrayConst enabledArray = jsonObject["eef"].as<JsonArrayConst>();
-            size_t enabledSize = enabledArray.isNull() ? 0 : enabledArray.size();
+            int enabledSize = enabledArray.isNull() ? 0 : enabledArray.size();
 
             for (int i = 0; i < _vEffects.size(); i++)
             {
@@ -299,7 +295,7 @@ public:
         return _gfx[iChannel];
     }
 
-    // ShowVU - Control whether VU meter should be drawn.  Returns the previous state when set.
+    // ShowVU - Control whether VU meter should be draw.  Returns the previous state when set.
     virtual bool ShowVU(bool bShow);
     virtual bool IsVUVisible() const;
 
@@ -308,8 +304,8 @@ public:
     // When a global color is set via the remote, we create a fill effect and assign it as the "remote effect"
     // which takes drawing precedence
 
-    void ApplyGlobalColor(CRGB color) const;
-    void ApplyGlobalPaletteColors() const;
+    void ApplyGlobalColor(CRGB color);
+    void ApplyGlobalPaletteColors();
 
     void ClearRemoteColor(bool retainRemoteEffect = false);
 
@@ -488,17 +484,17 @@ public:
         return _vEffects;
     }
 
-    size_t EffectCount() const
+    const size_t EffectCount() const
     {
         return _vEffects.size();
     }
 
-    bool AreEffectsEnabled() const
+    const bool AreEffectsEnabled() const
     {
         return std::any_of(_vEffects.begin(), _vEffects.end(), [](const auto& pEffect){ return pEffect->IsEnabled(); } );
     }
 
-    size_t GetCurrentEffectIndex() const
+    const size_t GetCurrentEffectIndex() const
     {
         return _iCurrentEffect;
     }
@@ -566,7 +562,7 @@ public:
 
     void CheckEffectTimerExpired()
     {
-        // If interval is zero, the current effect never expires unless it has a max effect time set
+        // If interval is zero, the current effect never expires unless it thas a max effect time set
 
         if (IsIntervalEternal() && !GetCurrentEffect().HasMaximumEffectTime())
             return;
@@ -591,7 +587,7 @@ public:
         g->CyclePalette(1);
     }
 
-    void PreviousPalette() const
+    void PreviousPalette()
     {
         g()->CyclePalette(-1);
     }

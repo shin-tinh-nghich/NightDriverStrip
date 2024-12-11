@@ -37,7 +37,7 @@
 #include "effects/strip/doublepaletteeffect.h"  // double palette effect
 #include "effects/strip/meteoreffect.h"         // meteor blend effect
 #include "effects/strip/stareffect.h"           // star effects
-#include "effects/strip/bouncingballeffect.h"   // bouncing ball effectsenable+
+#include "effects/strip/bouncingballeffect.h"   // bouincing ball effectsenable+
 #include "effects/strip/tempeffect.h"
 #include "effects/strip/stareffect.h"
 #include "effects/strip/laserline.h"
@@ -337,7 +337,7 @@ void LoadEffectFactories()
         ADD_EFFECT(EFFECT_STRIP_PALETTE, PaletteEffect, RainbowColors_p, 1.0, 1.0);
         ADD_EFFECT(EFFECT_STRIP_PALETTE, PaletteEffect, RainbowColors_p, .25);
 
-    #elif TTGO
+    #elif TTGO || DOITV1
 
         // Animate a simple rainbow palette by using the palette effect on the built-in rainbow palette
         ADD_EFFECT(EFFECT_MATRIX_SPECTRUM_ANALYZER, SpectrumAnalyzerEffect, "Spectrum Fade", 12, spectrumBasicColors, false, 50, 70, -1.0, 3.0);
@@ -447,37 +447,20 @@ void LoadEffectFactories()
         ADD_EFFECT(EFFECT_STRIP_METEOR, MeteorEffect, 1, 1, 5, .15, .25);
         ADD_EFFECT(EFFECT_STRIP_METEOR, MeteorEffect); // Rainbow palette
 
-    #elif PLATECOVER
-
-        #ifndef EFFECT_SET_VERSION
-            #define EFFECT_SET_VERSION  1
-        #endif    
-
-        ADD_EFFECT(EFFECT_STRIP_COLOR_FILL, ColorFillEffect, "Solid White", CRGB::White, 1);
-        ADD_EFFECT(EFFECT_STRIP_COLOR_FILL, ColorFillEffect, "Solid Red",   CRGB::Red,   1);
-        ADD_EFFECT(EFFECT_STRIP_COLOR_FILL, ColorFillEffect, "Solid Amber", CRGB(255, 50, 0), 1);
-        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, HeatColors_p, NUM_LEDS, 4, 5.0, 200, 8, 8, Sequential, true, true, true, 90);
-        ADD_EFFECT(EFFECT_STRIP_RAINBOW_FILL, RainbowFillEffect, 16, 3, true);
-        ADD_EFFECT(EFFECT_STRIP_METEOR, MeteorEffect, 2, 1, 15, .75, .75);
-        ADD_EFFECT(EFFECT_STRIP_COLOR_FILL, ColorFillEffect, "Off", CRGB::Black, 1);
-
     #elif SPIRALLAMP
 
         #ifndef EFFECT_SET_VERSION
-            #define EFFECT_SET_VERSION  3
+            #define EFFECT_SET_VERSION  2   // Bump version if default set changes in a meaningful way
         #endif
 
-        ADD_EFFECT(EFFECT_STRIP_VUMETER_VERTICAL, VUMeterVerticalEffect);
-        ADD_EFFECT(EFFECT_STRIP_METEOR, MeteorEffect, 4, 4, 10, 1.0, 1.0);
-        ADD_EFFECT(EFFECT_STRIP_COLOR_FILL, ColorFillEffect, "Solid White", CRGB::White, 1);
-
-        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, HeatColors_p,      NUM_LEDS, 1, 2.5, 200, 2, 15, Sequential, true, false);
-        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, GreenHeatColors_p, NUM_LEDS, 1, 2.5, 200, 2, 15, Sequential, true, false);
-        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, BlueHeatColors_p,  NUM_LEDS, 1, 2.5, 200, 2, 15, Sequential, true, false);
-        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, RainbowColors_p,   NUM_LEDS, 1, 2.5, 200, 2, 15, Sequential, true, false);
-        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, HeatColors_p,      NUM_LEDS, 1, 2.5, 200, 2, 15, Sequential, true, false, true);
+        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, HeatColors_p, NUM_LEDS, 1, 1.6, 750, 2, 15, Sequential, true, false);
+        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, GreenHeatColors_p, NUM_LEDS, 1, 1.6, 750, 2, 15, Sequential, true, false);
+        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, BlueHeatColors_p, NUM_LEDS, 1, 1.6, 750, 2, 15, Sequential, true, false);
+        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, RainbowColors_p, NUM_LEDS, 1, 1.6, 750, 2, 15, Sequential, true, false);
+        ADD_EFFECT(EFFECT_STRIP_FIRE_FAN, FireFanEffect, HeatColors_p, NUM_LEDS, 1, 1.6, 750, 2, 15, Sequential, true, false, true);
 
         ADD_EFFECT(EFFECT_STRIP_RAINBOW_FILL, RainbowFillEffect, 120, 0);
+        ADD_EFFECT(EFFECT_STRIP_COLOR_CYCLE, ColorCycleEffect, Sequential);
         ADD_EFFECT(EFFECT_STRIP_PALETTE, PaletteEffect, RainbowColors_p, 4, 0.1, 0.0, 1.0, 0.0);
 
         ADD_EFFECT(EFFECT_STRIP_BOUNCING_BALL, BouncingBallEffect, 3, true, true, 8);
@@ -492,6 +475,8 @@ void LoadEffectFactories()
         ADD_STARRY_NIGHT_EFFECT(Star,      "Green Sparkle Stars", GreenColors_p, STARRYNIGHT_PROBABILITY, 1, LINEARBLEND, 2.0, 0.0, STARRYNIGHT_MUSICFACTOR);                  // Blue Sparkle
         ADD_STARRY_NIGHT_EFFECT(MusicStar, "Green Stars",         GreenColors_p, STARRYNIGHT_PROBABILITY, 1, LINEARBLEND, 2.0, 0.0, STARRYNIGHT_MUSICFACTOR);           
 
+        ADD_EFFECT(EFFECT_STRIP_METEOR, MeteorEffect, 4, 4, 10, 1.0, 1.0);
+        ADD_EFFECT(EFFECT_STRIP_METEOR, MeteorEffect, 2, 4, 10, 0.25, 0.25);
 
         ADD_EFFECT(EFFECT_STRIP_TWINKLE, TwinkleEffect, NUM_LEDS / 2, 20, 50);
         ADD_EFFECT(EFFECT_STRIP_PALETTE, PaletteEffect, RainbowColors_p, .25, 1, 0, 1.0, 0.0, LINEARBLEND, true, 1.0);

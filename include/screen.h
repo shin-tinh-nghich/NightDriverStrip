@@ -228,8 +228,6 @@ public:
                 return;
             }
 
-            amoled.setBrightness(255);
-            
             // Register lvgl helper
             beginLvglHelper(amoled);
 
@@ -314,11 +312,8 @@ public:
         U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled;
 
     public:
-        #if ARDUINO_HELTEC_WIFI_LORA_32_V3
-            OLEDScreen(int w, int h) : Screen(w, h), oled(U8G2_R2, /*reset*/ 21, /*clk*/ 18, /*data*/ 17)
-        #else
-            OLEDScreen(int w, int h) : Screen(w, h), oled(U8G2_R2, /*reset*/ 16, /*clk*/ 15, /*data*/ 4)
-        #endif
+
+        OLEDScreen(int w, int h) : Screen(w, h), oled(U8G2_R2, /*reset*/ 16, /*clk*/ 15, /*data*/ 4)
         {
             oled.begin();
             oled.clear();
@@ -363,10 +358,8 @@ public:
 
         SSD1306Screen(int w, int h) : Screen(w, h)
         {
-            Heltec.begin(true /*DisplayEnable Enable*/, false /*LoRa Enable*/, false /*Serial Enable*/);
-            #if ROTATE_SCREEN
-                Heltec.display->screenRotate(ANGLE_180_DEGREE);
-            #endif
+            Heltec.begin(true /*DisplayEnable Enable*/, true /*LoRa Disable*/, false /*Serial Enable*/);
+            Heltec.display->screenRotate(ANGLE_180_DEGREE);
         }
 
         virtual void StartFrame() override
@@ -581,5 +574,57 @@ public:
             pLCD->fillRect(x, y, w, h, color);
         }
 
+    };
+#endif
+
+#if USE_KS0108
+
+    #include <U8g2lib.h>
+    #include <gfxfont.h>                // Adafruit GFX font structs
+    #include <Adafruit_GFX.h>           // GFX wrapper so we can draw on screen
+
+    class KS0108Screen : public Screen
+    {
+        U8G2_KS0108_128X64_F kslcd;
+
+    public:
+    
+        KS0108Screen(int w, int h) : Screen(w, h), kslcd(U8G2_R2, 14, 27, 26, 25, 33, 32, 21, 19, /*enable=*/ 12, /*dc=*/ 13, /*cs0=*/ 23, /*cs1=*/ 22, /*cs2=*/ U8X8_PIN_NONE, /* reset=*/  U8X8_PIN_NONE)
+        {
+            kslcd.begin();
+        }
+
+        virtual void StartFrame() override
+        {
+            kslcd.clearBuffer();
+        }
+
+        virtual void EndFrame() override
+        {
+            kslcd.sendBuffer();
+        }
+
+        virtual void drawPixel(int16_t x, int16_t y, uint16_t color) override
+        {
+            kslcd.setDrawColor(color == BLACK16 ? 0  : 1);
+            kslcd.drawPixel(x, y);
+        }
+/*
+        virtual void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) override
+        {
+            kslcd.setDrawColor(color == BLACK16 ? 0  : 1);
+            kslcd.drawBox(x, y, w, h);
+        }
+
+        virtual void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) override
+        {
+            kslcd.setDrawColor(color == BLACK16 ? 0  : 1);
+            kslcd.drawFrame(x, y, w, h);
+        }
+*/
+        virtual void fillScreen(uint16_t color) override
+        {
+            kslcd.clearDisplay();
+        }
     };
 #endif

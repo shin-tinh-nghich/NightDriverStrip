@@ -13,7 +13,7 @@ bool SocketServer::ProcessIncomingConnectionsLoop()
 
     int new_socket = 0;
 
-    // Accept a new incoming connection
+    // Accept a new incoming connnection
     int addrlen = sizeof(_address);
     if ((new_socket = accept(_server_fd, (struct sockaddr *)&_address, (socklen_t*)&addrlen))<0)
     {
@@ -95,7 +95,7 @@ bool SocketServer::ProcessIncomingConnectionsLoop()
                 debugW("Could not read compressed data from stream\n");
                 break;
             }
-            debugV("Successfully read %u bytes", COMPRESSED_HEADER_SIZE + compressedSize);
+            debugV("Successfuly read %u bytes", COMPRESSED_HEADER_SIZE + compressedSize);
 
             // If our buffer is in PSRAM it would be expensive to decompress in place, as the SPIRAM doesn't like
             // non-linear access from what I can tell.  I bet it must send addr+len to request each unique read, so
@@ -222,14 +222,11 @@ bool SocketServer::ProcessIncomingConnectionsLoop()
 
         if (bSendResponsePacket)
         {
-            static uint64_t sequence = 0;
-
             debugV("Sending Response Packet from Socket Server");
             auto& bufferManager = g_ptrSystem->BufferManagers()[0];
 
             SocketResponse response = {
                                         .size = sizeof(SocketResponse),
-                                        .sequence     = sequence++,
                                         .flashVersion = FLASH_VERSION,
                                         .currentClock = g_Values.AppTime.CurrentTime(),
                                         .oldestPacket = bufferManager.AgeOfOldestBuffer(),
@@ -247,7 +244,7 @@ bool SocketServer::ProcessIncomingConnectionsLoop()
                 debugW("Unable to send response back to server.");
         }
 
-        delay(1);
+        delay(100);
 
     } while (true);
 

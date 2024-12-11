@@ -35,7 +35,7 @@
 //    can be 8 such channels connected to 8 different pins.
 //    By default, NightDriver draws client effects, and there many
 //    built in, from marquees to fire.  But it can also receive color
-//    data from a server.  So it first checks to see if there is
+//    data from a server.  So it firsts checks to see if there is
 //    data coming in, and if so, draws that.  If not it falls back
 //    to internal drawing.  The server sends a simple packet with
 //    an LED count, timestamp, and then the color data for the LEDs.
@@ -165,14 +165,12 @@
 #include "values.h"
 #include "improvserial.h"                       // ImprovSerial impl for setting WiFi credentials over the serial port
 #include <TJpg_Decoder.h>
-#include <esp_now.h>
 
 #if defined(TOGGLE_BUTTON_1) || defined(TOGGLE_BUTTON_2)
   #include "Bounce2.h"                            // For Bounce button class
 #endif
 
 void IRAM_ATTR ScreenUpdateLoopEntry(void *);
-void onReceiveESPNOW(const uint8_t *macAddr, const uint8_t *data, int dataLen);
 
 //
 // Global Variables
@@ -193,7 +191,7 @@ std::unique_ptr<ImprovSerial<typeof(Serial)>> g_pImprovSerial;
 // If an insulator or tree or fan has multiple rings, this table defines how those rings are laid out such
 // that they add up to FAN_SIZE pixels total per ring.
 //
-// Imagine a setup of 5 Christmas trees, where each tree was made up of 4 concentric rings of decreasing
+// Imagine a setup of 5 Christmas trees, where each tree was made up of 4 concentric rings of descreasing
 // size, like 16, 12, 8, 4.  You would have NUM_FANS of 5 and MAX_RINGS of 4 and your ring table would be 16, 12, 8 4.
 
 const int g_aRingSizeTable[MAX_RINGS] =
@@ -214,7 +212,7 @@ void PrintOutputHeader()
 {
     debugI("NightDriverStrip\n");
     debugI("------------------------------------------------------------------------------------------------------------");
-    debugI("M5STICKC: %d, USE_M5DISPLAY: %d, USE_OLED: %d, USE_TFTSPI: %d, USE_LCD: %d, USE_AUDIO: %d, ENABLE_REMOTE: %d", M5STICKC, USE_M5DISPLAY, USE_OLED, USE_TFTSPI, USE_LCD, ENABLE_AUDIO, ENABLE_REMOTE);
+    debugI("M5STICKC: %d, USE_M5DISPLAY: %d, USE_OLED: %d, USE_KS0108: %d, USE_TFTSPI: %d, USE_LCD: %d, USE_AUDIO: %d, ENABLE_REMOTE: %d", M5STICKC, USE_M5DISPLAY, USE_OLED, USE_KS0108, USE_TFTSPI, USE_LCD, ENABLE_AUDIO, ENABLE_REMOTE);
 
     #if USE_PSRAM
         debugI("ESP32 PSRAM Init: %s", psramInit() ? "OK" : "FAIL");
@@ -255,10 +253,6 @@ Bounce2::Button Button1;
 Bounce2::Button Button2;
 #endif
 
-#ifdef TOGGLE_BUTTON_3
-Bounce2::Button Button3;
-#endif
-
 // setup
 //
 // Invoked once at boot, does initial chip setup and application initial init, then spins off worker tasks and returns
@@ -285,9 +279,9 @@ void setup()
     // Re-route debug output to the serial port
     Debug.setSerialEnabled(true);
 
-    // Initialize SPIFFS for file access to non-volatile storage
+    // Intialialize SPIFFS for file access to non-volatile storage
     if (!SPIFFS.begin(true))
-        Serial.println("WARNING: SPIFFS could not be initialized!");
+        Serial.println("WARNING: SPIFFs could not be initialized!");
 
     // Enabling PSRAM allows us to use the extra 4MB of RAM on the ESP32-WROVER chip, but it caused
     // problems with the S3 rebooting when WiFi connected, so for now, I've limited the default
@@ -325,18 +319,7 @@ void setup()
         err = nvs_flash_init();
     }
 
-
     ESP_ERROR_CHECK(err);
-
-    #if ENABLE_ESPNOW
-        WiFi.mode(WIFI_STA);  // or WIFI_AP if applicable
-
-        if (esp_now_init() != ESP_OK) 
-            throw std::runtime_error("Error initializing ESP-NOW");
-        // Register receive callback function
-        esp_now_register_recv_cb(onReceiveESPNOW);
-        debugI("ESP-NOW initialized with MAC address: %s", WiFi.macAddress().c_str());
-    #endif
 
     #if ENABLE_WIFI
         String WiFi_ssid;
@@ -427,12 +410,6 @@ void setup()
         Button2.setPressedState(LOW);
     #endif
 
-    #ifdef TOGGLE_BUTTON_3
-        Button3.attach(TOGGLE_BUTTON_3, INPUT_PULLUP);
-        Button3.interval(1);
-        Button3.setPressedState(LOW);
-    #endif
-
     #if AMOLED_S3
         #include "amoled/LilyGo_AMOLED.h"
         debugW("Creating AMOLED Screen");
@@ -449,6 +426,12 @@ void setup()
 
         debugW("Creating LCD Screen");
         g_ptrSystem->SetupDisplay<LCDScreen>(TFT_HEIGHT, TFT_WIDTH);
+        
+    #elif USE_KS0108
+
+        debugW("Creating KS0108 Screen");
+        g_ptrSystem->SetupDisplay<KS0108Screen>(128, 64);
+        
 
     #elif USE_M5
 
@@ -547,7 +530,6 @@ void setup()
     taskManager.StartSocketThread();
 
     SaveEffectManagerConfig();
-    // Start the main loop
 }
 
 // loop - main execution loop
@@ -583,7 +565,7 @@ void loop()
             String strOutput;
 
             #if ENABLE_WIFI
-                strOutput += str_sprintf("WiFi: %s, MAC: %s, IP: %s ", WLtoString(WiFi.status()), WiFi.macAddress().c_str(), WiFi.localIP().toString().c_str());
+                strOutput += str_sprintf("WiFi: %s, IP: %s, ", WLtoString(WiFi.status()), WiFi.localIP().toString().c_str());
             #endif
 
             strOutput += str_sprintf("Mem: %u, LargestBlk: %u, PSRAM Free: %u/%u, ", ESP.getFreeHeap(), ESP.getMaxAllocHeap(), ESP.getFreePsram(), ESP.getPsramSize());

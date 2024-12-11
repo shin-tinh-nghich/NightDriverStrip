@@ -30,8 +30,6 @@
 
 #include "globals.h"
 #include "webserver.h"
-
-#include <utility>
 #include "systemcontainer.h"
 #include "soundanalyzer.h"
 #include "improvserial.h"
@@ -55,7 +53,7 @@ std::vector<std::reference_wrapper<SettingSpec>> CWebServer::deviceSettingSpecs{
 template<>
 bool CWebServer::PushPostParamIfPresent<bool>(AsyncWebServerRequest * pRequest, const String &paramName, ValueSetter<bool> setter)
 {
-    return PushPostParamIfPresent<bool>(pRequest, paramName, std::move(setter), [](AsyncWebParameter * param) constexpr
+    return PushPostParamIfPresent<bool>(pRequest, paramName, setter, [](AsyncWebParameter * param) constexpr
     {
         return BoolFromText(param->value());
     });
@@ -65,9 +63,9 @@ bool CWebServer::PushPostParamIfPresent<bool>(AsyncWebServerRequest * pRequest, 
 template<>
 bool CWebServer::PushPostParamIfPresent<size_t>(AsyncWebServerRequest * pRequest, const String &paramName, ValueSetter<size_t> setter)
 {
-    return PushPostParamIfPresent<size_t>(pRequest, paramName, std::move(setter), [](AsyncWebParameter * param) constexpr
+    return PushPostParamIfPresent<size_t>(pRequest, paramName, setter, [](AsyncWebParameter * param) constexpr
     {
-        return strtoul(param->value().c_str(), nullptr, 10);
+        return strtoul(param->value().c_str(), NULL, 10);
     });
 }
 
@@ -75,7 +73,7 @@ bool CWebServer::PushPostParamIfPresent<size_t>(AsyncWebServerRequest * pRequest
 template<>
 bool CWebServer::PushPostParamIfPresent<int>(AsyncWebServerRequest * pRequest, const String &paramName, ValueSetter<int> setter)
 {
-    return PushPostParamIfPresent<int>(pRequest, paramName, std::move(setter), [](AsyncWebParameter * param) constexpr
+    return PushPostParamIfPresent<int>(pRequest, paramName, setter, [](AsyncWebParameter * param) constexpr
     {
         return std::stoi(param->value().c_str());
     });
@@ -85,9 +83,9 @@ bool CWebServer::PushPostParamIfPresent<int>(AsyncWebServerRequest * pRequest, c
 template<>
 bool CWebServer::PushPostParamIfPresent<CRGB>(AsyncWebServerRequest * pRequest, const String &paramName, ValueSetter<CRGB> setter)
 {
-    return PushPostParamIfPresent<CRGB>(pRequest, paramName, std::move(setter), [](AsyncWebParameter * param) constexpr
+    return PushPostParamIfPresent<CRGB>(pRequest, paramName, setter, [](AsyncWebParameter * param) constexpr
     {
-        return CRGB(strtoul(param->value().c_str(), nullptr, 10));
+        return CRGB(strtoul(param->value().c_str(), NULL, 10));
     });
 }
 
@@ -104,14 +102,14 @@ void CWebServer::AddCORSHeaderAndSendResponse<AsyncJsonResponse>(AsyncWebServerR
 // begin - register page load handlers and start serving pages
 void CWebServer::begin()
 {
-    [[maybe_unused]] extern const uint8_t html_start[] asm("_binary_site_dist_index_html_gz_start");
-    [[maybe_unused]] extern const uint8_t html_end[] asm("_binary_site_dist_index_html_gz_end");
-    [[maybe_unused]] extern const uint8_t js_start[] asm("_binary_site_dist_index_js_gz_start");
-    [[maybe_unused]] extern const uint8_t js_end[] asm("_binary_site_dist_index_js_gz_end");
-    [[maybe_unused]] extern const uint8_t ico_start[] asm("_binary_site_dist_favicon_ico_gz_start");
-    [[maybe_unused]] extern const uint8_t ico_end[] asm("_binary_site_dist_favicon_ico_gz_end");
-    [[maybe_unused]] extern const uint8_t timezones_start[] asm("_binary_config_timezones_json_start");
-    [[maybe_unused]] extern const uint8_t timezones_end[] asm("_binary_config_timezones_json_end");
+    extern const uint8_t html_start[] asm("_binary_site_dist_index_html_gz_start");
+    extern const uint8_t html_end[] asm("_binary_site_dist_index_html_gz_end");
+    extern const uint8_t js_start[] asm("_binary_site_dist_index_js_gz_start");
+    extern const uint8_t js_end[] asm("_binary_site_dist_index_js_gz_end");
+    extern const uint8_t ico_start[] asm("_binary_site_dist_favicon_ico_gz_start");
+    extern const uint8_t ico_end[] asm("_binary_site_dist_favicon_ico_gz_end");
+    extern const uint8_t timezones_start[] asm("_binary_config_timezones_json_start");
+    extern const uint8_t timezones_end[] asm("_binary_config_timezones_json_end");
 
     EmbeddedWebFile html_file(html_start, html_end, "text/html", "gzip");
     EmbeddedWebFile js_file(js_start, js_end, "application/javascript", "gzip");
@@ -216,7 +214,7 @@ long CWebServer::GetEffectIndexFromParam(AsyncWebServerRequest * pRequest, bool 
     if (!pRequest->hasParam("effectIndex", post, false))
         return -1;
 
-    return strtol(pRequest->getParam("effectIndex", post, false)->value().c_str(), nullptr, 10);
+    return strtol(pRequest->getParam("effectIndex", post, false)->value().c_str(), NULL, 10);
 }
 
 void CWebServer::GetEffectListText(AsyncWebServerRequest * pRequest)
@@ -237,7 +235,7 @@ void CWebServer::GetEffectListText(AsyncWebServerRequest * pRequest)
         j["eternalInterval"]       = effectManager.IsIntervalEternal();
         j["effectInterval"]        = effectManager.GetInterval();
 
-        for (const auto& effect : effectManager.EffectsList())
+        for (auto effect : effectManager.EffectsList())
         {
             StaticJsonDocument<256> effectDoc;
 
@@ -260,7 +258,7 @@ void CWebServer::GetEffectListText(AsyncWebServerRequest * pRequest)
     } while (bufferOverflow);
 }
 
-void CWebServer::GetStatistics(AsyncWebServerRequest * pRequest) const
+void CWebServer::GetStatistics(AsyncWebServerRequest * pRequest)
 {
     debugV("GetStatistics");
 
@@ -465,7 +463,7 @@ void CWebServer::SendSettingSpecsResponse(AsyncWebServerRequest * pRequest, cons
 
 const std::vector<std::reference_wrapper<SettingSpec>> & CWebServer::LoadDeviceSettingSpecs()
 {
-    if (deviceSettingSpecs.empty())
+    if (deviceSettingSpecs.size() == 0)
     {
         mySettingSpecs.emplace_back(
             "effectInterval",
@@ -692,6 +690,9 @@ void CWebServer::ValidateAndSetSetting(AsyncWebServerRequest * pRequest)
     AddCORSHeaderAndSendOKResponse(pRequest);
 }
 
+// Number of ms we wait after flushing pending writes
+#define WRITE_WAIT_DELAY
+
 // Reset effect config, device config and/or the board itself
 void CWebServer::Reset(AsyncWebServerRequest * pRequest)
 {
@@ -729,6 +730,6 @@ void CWebServer::Reset(AsyncWebServerRequest * pRequest)
     if (boardResetRequested)
     {
         debugW("Resetting device at API request!");
-        throw std::runtime_error("Resetting device at API request");
+        throw new std::runtime_error("Resetting device at API request");
     }
 }

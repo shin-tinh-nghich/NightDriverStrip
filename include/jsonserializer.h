@@ -32,7 +32,6 @@
 #pragma once
 
 #include <atomic>
-#include <utility>
 #include <ArduinoJson.h>
 #include "jsonbase.h"
 
@@ -51,15 +50,15 @@ constexpr auto to_value(E e) noexcept
 #if USE_PSRAM
     struct JsonPsramAllocator
     {
-        static void* allocate(size_t size) {
+        void* allocate(size_t size) {
             return ps_malloc(size);
         }
 
-        static void deallocate(void* pointer) {
+        void deallocate(void* pointer) {
             free(pointer);
         }
 
-        static void* reallocate(void* ptr, size_t new_size) {
+        void* reallocate(void* ptr, size_t new_size) {
             return ps_realloc(ptr, new_size);
         }
     };
@@ -126,7 +125,7 @@ namespace ArduinoJson
 }
 
 bool BoolFromText(const String& text);
-bool SerializeWithBufferSize(std::unique_ptr<AllocatedJsonDocument>& pJsonDoc, size_t& bufferSize, const std::function<bool(JsonObject&)>& serializationFunction);
+bool SerializeWithBufferSize(std::unique_ptr<AllocatedJsonDocument>& pJsonDoc, size_t& bufferSize, std::function<bool(JsonObject&)> serializationFunction);
 bool LoadJSONFile(const String & fileName, size_t& bufferSize, std::unique_ptr<AllocatedJsonDocument>& pJsonDoc);
 bool SaveToJSONFile(const String & fileName, size_t& bufferSize, IJSONSerializable& object);
 bool RemoveJSONFile(const String & fileName);
@@ -146,11 +145,11 @@ class JSONWriter
         std::atomic_bool flag = false;
         std::function<void()> writer;
 
-        explicit WriterEntry(std::function<void()> writer) :
-            writer(std::move(writer))
+        WriterEntry(std::function<void()> writer) :
+            writer(writer)
         {}
 
-        WriterEntry(WriterEntry&& entry)  noexcept : WriterEntry(entry.writer)
+        WriterEntry(WriterEntry&& entry) : WriterEntry(entry.writer)
         {}
     };
 
@@ -162,7 +161,7 @@ class JSONWriter
   public:
 
     // Add a writer to the collection. Returns the index of the added writer, for use with FlagWriter()
-    size_t RegisterWriter(const std::function<void()>& writer);
+    size_t RegisterWriter(std::function<void()> writer);
 
     // Flag a writer for invocation and wake up the task that calls them
     void FlagWriter(size_t index);

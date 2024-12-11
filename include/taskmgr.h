@@ -45,12 +45,10 @@
 
 #include <Arduino.h>
 #include <esp_task_wdt.h>
-
-#include <utility>
 #include "ledstripeffect.h"
 
 // Stack size for the taskmgr's idle threads
-#define DEFAULT_STACK_SIZE (2048 + 512)
+#define DEFAULT_STACK_SIZE 2048+512
 
 #define IDLE_STACK_SIZE    2048
 #define DRAWING_STACK_SIZE 4096
@@ -81,7 +79,7 @@ class IdleTask
         _lastMeasurement = millis();
         counter = 0;
 
-        // We need to whack the watchdog so we delay in smaller bites until we've used up all the time
+        // We need to whack the watchdog so we delay in smalle bites until we've used up all the time
 
         while (true)
         {
@@ -156,11 +154,12 @@ public:
         else if (iCore == 1)
             return _taskIdle1.GetCPUUsage();
         else
-            throw std::runtime_error("Invalid core passed to GetCPUUsagePercentCPU");
+            throw new std::runtime_error("Invalid core passed to GetCPUUsagePercentCPU");
     }
 
     TaskManager()
-    = default;
+    {
+    }
 
     // CheckHeap
     //
@@ -226,7 +225,7 @@ private:
         LEDStripEffect* pEffect;
 
         EffectTaskParams(EffectTaskFunction function, LEDStripEffect* pEffect)
-          : function(std::move(function)),
+          : function(function),
             pEffect(pEffect)
         {}
     };
@@ -389,7 +388,7 @@ public:
     {
         // We use a raw pointer here just to cross the thread/task boundary. The EffectTaskEntry method
         //   deletes the object as soon as it can.
-        EffectTaskParams* pTaskParams = new EffectTaskParams(std::move(function), pEffect);
+        EffectTaskParams* pTaskParams = new EffectTaskParams(function, pEffect);
         TaskHandle_t effectTask = nullptr;
 
         Serial.print( str_sprintf(">> Launching %s Effect Thread.  Mem: %u, LargestBlk: %u, PSRAM Free: %u/%u, ", name, ESP.getFreeHeap(),ESP.getMaxAllocHeap(), ESP.getFreePsram(), ESP.getPsramSize()) );

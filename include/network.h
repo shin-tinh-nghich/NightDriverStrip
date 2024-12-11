@@ -22,12 +22,10 @@
 //
 // Description:
 //
-//    Network related functions and definitions
+//    Network related functions and definitons
 //
 //---------------------------------------------------------------------------
 #pragma once
-
-#include <utility>
 
 #include "types.h"
 
@@ -147,20 +145,19 @@
           std::atomic_bool canceled = false;
 
           ReaderEntry(std::function<void()> reader, unsigned long interval) :
-              reader(std::move(reader)),
-              lastReadMs(0),
+              reader(reader),
               readInterval(interval)
           {}
 
           ReaderEntry(std::function<void()> reader, unsigned long interval, unsigned long lastReadMs, bool flag, bool canceled) :
-              reader(std::move(reader)),
+              reader(reader),
               readInterval(interval),
               lastReadMs(lastReadMs),
               flag(flag),
               canceled(canceled)
           {}
 
-          ReaderEntry(ReaderEntry&& entry)  noexcept : ReaderEntry(entry.reader, entry.readInterval, entry.lastReadMs, entry.flag, entry.canceled)
+          ReaderEntry(ReaderEntry&& entry) : ReaderEntry(entry.reader, entry.readInterval, entry.lastReadMs, entry.flag, entry.canceled)
           {}
       };
 
@@ -171,7 +168,7 @@
       // Add a reader to the collection. Returns the index of the added reader, for use with FlagReader().
       //   Note that if an interval (in ms) is specified, the reader will run for the first time after
       //   the interval has passed, unless "true" is passed to the last parameter.
-      size_t RegisterReader(const std::function<void()>& reader, unsigned long interval = 0, bool flag = false);
+      size_t RegisterReader(std::function<void()> reader, unsigned long interval = 0, bool flag = false);
 
       // Flag a reader for invocation and wake up the task that calls them
       void FlagReader(size_t index);

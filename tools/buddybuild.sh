@@ -17,6 +17,7 @@ platformio run -e panlee
 platformio run -e spectrum
 platformio run -e umbrella
 platformio run -e xmastrees
+platformio run -e doitv1
 
 
 

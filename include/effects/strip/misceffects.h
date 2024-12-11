@@ -31,8 +31,6 @@
 
 #pragma once
 
-#include <deque>
-
 #if USE_HUB75
 #include "TJpg_Decoder.h"
 #endif
@@ -163,15 +161,13 @@ protected:
 
     float _speedDivisor;
     int   _deltaHue;
-    bool  _mirrored;
 
   public:
 
-    RainbowFillEffect(float speedDivisor = 12.0f, int deltaHue = 14, bool mirrored = false)
+    RainbowFillEffect(float speedDivisor = 12.0f, int deltaHue = 14)
       : LEDStripEffect(EFFECT_STRIP_RAINBOW_FILL, "RainbowFill Rainbow"),
         _speedDivisor(speedDivisor),
-        _deltaHue(deltaHue),
-        _mirrored(mirrored)
+        _deltaHue(deltaHue)
     {
         debugV("RainbowFill constructor");
     }
@@ -179,8 +175,7 @@ protected:
     RainbowFillEffect(const JsonObjectConst& jsonObject)
       : LEDStripEffect(jsonObject),
         _speedDivisor(jsonObject[PTY_SPEEDDIVISOR]),
-        _deltaHue(jsonObject[PTY_DELTAHUE]),
-        _mirrored(jsonObject[PTY_MIRRORED])
+        _deltaHue(jsonObject[PTY_DELTAHUE])
     {
         debugV("RainbowFill JSON constructor");
     }
@@ -194,7 +189,6 @@ protected:
 
         jsonDoc[PTY_SPEEDDIVISOR] = _speedDivisor;
         jsonDoc[PTY_DELTAHUE] = _deltaHue;
-        jsonDoc[PTY_MIRRORED] = _mirrored;
 
         assert(!jsonDoc.overflowed());
 
@@ -211,7 +205,7 @@ protected:
 
         hue += (float) msElapsed / _speedDivisor;
         hue = fmod(hue, 256.0);
-        fillRainbowAllChannels(0, _cLEDs, hue, _deltaHue, 1, _mirrored);
+        fillRainbowAllChannels(0, _cLEDs, hue, _deltaHue);
         delay(10);
     }
 };
@@ -234,15 +228,6 @@ protected:
     bool _ignoreGlobalColor;
 
   public:
-
-    ColorFillEffect(const String &name, CRGB color = CRGB(246,200,160), int everyNth = 10, bool ignoreGlobalColor = false)
-      : LEDStripEffect(EFFECT_STRIP_COLOR_FILL, name),
-        _everyNth(everyNth),
-        _color(color),
-        _ignoreGlobalColor(ignoreGlobalColor)
-    {
-        debugV("Color Fill constructor");
-    }
 
     ColorFillEffect(CRGB color = CRGB(246,200,160), int everyNth = 10, bool ignoreGlobalColor = false)
       : LEDStripEffect(EFFECT_STRIP_COLOR_FILL, "Color Fill"),

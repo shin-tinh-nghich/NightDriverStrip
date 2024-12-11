@@ -36,7 +36,6 @@
 #include <pixeltypes.h>
 #include <memory>
 #include <iostream>
-#include <utility>
 #include "values.h"
 
 class LEDBuffer
@@ -55,7 +54,7 @@ class LEDBuffer
   public:
 
     explicit LEDBuffer(std::shared_ptr<GFXBase> pStrand) :
-                 _pStrand(std::move(pStrand)),
+                 _pStrand(pStrand),
                  _pixelCount(0),
                  _timeStampMicroseconds(0),
                  _timeStampSeconds(0)
@@ -64,7 +63,8 @@ class LEDBuffer
     }
 
     ~LEDBuffer()
-    = default;
+    {
+    }
 
     uint64_t Seconds()      const  { return _timeStampSeconds;      }
     uint64_t MicroSeconds() const  { return _timeStampMicroseconds; }
@@ -162,10 +162,12 @@ class LEDBufferManager
     size_t                                               _iNextBuffer;        // Head pointer index
     size_t                                               _iLastBuffer;        // Tail pointer index
     uint32_t                                             _cBuffers;           // Number of buffers
+    float                                                _BufferAgeOldest = 0;
+    float                                                _BufferAgeNewest = 0;
 
   public:
 
-    LEDBufferManager(uint32_t cBuffers, const std::shared_ptr<GFXBase>& pGFX)
+    LEDBufferManager(uint32_t cBuffers, std::shared_ptr<GFXBase> pGFX)
      : _ppBuffers(std::make_unique<std::vector<std::shared_ptr<LEDBuffer>>>()), // Create the circular array of ptrs
        _iNextBuffer(0),
        _iLastBuffer(0),
@@ -179,7 +181,7 @@ class LEDBufferManager
             _ppBuffers->push_back(make_shared_psram<LEDBuffer>(pGFX));
     }
 
-    double AgeOfOldestBuffer() const
+    double AgeOfOldestBuffer()
     {
         if (false == IsEmpty())
         {
@@ -192,7 +194,7 @@ class LEDBufferManager
         }
     }
 
-    double AgeOfNewestBuffer() const
+    double AgeOfNewestBuffer()
     {
         if (false == IsEmpty())
         {
@@ -282,7 +284,7 @@ class LEDBufferManager
     //
     // Take a "peek" at the newest buffer, or nullptr if empty
 
-    std::shared_ptr<LEDBuffer> PeekOldestBuffer() const
+    const std::shared_ptr<LEDBuffer> PeekOldestBuffer() const
     {
         if (IsEmpty())
             return nullptr;
@@ -290,7 +292,7 @@ class LEDBufferManager
         return (*_ppBuffers)[_iLastBuffer];
     }
 
-    std::shared_ptr<LEDBuffer> operator[](size_t index) const
+    const std::shared_ptr<LEDBuffer> operator[](size_t index) const
     {
         if (IsEmpty())
             return nullptr;
