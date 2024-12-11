@@ -40,12 +40,12 @@
 #define MS_PER_SECOND 1000
 
 // These are the audio variables that are referenced by many audio effects.  In order to allow non-audio code to reference them too without
-// including all the audio code (such as logging code, etc.), we put the publicly exposed variables into a structure, and then the SoundAnalyzer
+// including all the audio code (such as logging code, etc), we put the publicly exposed variables into a structure, and then the SoundAnalyzer
 // class will inherit them.
 //
 // In the non-audio case, there's a stub class that includes ONLY the audio variables and none of the code or buffers.
 //
-// In both cases, the AudioVariables are accessible as g_Analyzer.  It'll just be a stub in the non-audio case
+// In both cases, the AudioVariables are accessiable as g_Analyzer.  It'll just be a stub in the non-audio case
 
 struct AudioVariables
 {
@@ -67,6 +67,9 @@ class SoundAnalyzer : public AudioVariables // Non-audio case.  Inherits only th
 
 #else // Audio case
 
+#define EXAMPLE_I2S_NUM (I2S_NUM_0)
+#define EXAMPLE_I2S_FORMAT (I2S_CHANNEL_FMT_RIGHT_LEFT)                                         // I2S data format
+
 void IRAM_ATTR AudioSamplerTaskEntry(void *);
 void IRAM_ATTR AudioSerialTaskEntry(void *);
 
@@ -76,7 +79,7 @@ void IRAM_ATTR AudioSerialTaskEntry(void *);
 // results are simplified down to this small class of band peaks.
 
 #ifndef MIN_VU
-#define MIN_VU 2                // Minimum VU value to use for the span when computing VURatio.  Contributes to
+#define MIN_VU 1                // Minimum VU value to use for the span when computing VURatio.  Contributes to
 #endif                          // how dynamic the music is (smaller values == more dynamic)
 
 
@@ -85,7 +88,7 @@ void IRAM_ATTR AudioSerialTaskEntry(void *);
 #endif
 
 #ifndef VUDAMPEN
-    #define VUDAMPEN 0 // How slowly VU reacts
+    #define VUDAMPEN 2 // How slowly VU reacts
 #endif
 
 #define VUDAMPENMIN 1 // How slowly VU min creeps up to test noise floor
@@ -116,25 +119,21 @@ public:
         // BUGBUG (davepl) consider std::fill
         for (auto & i: _Level)
             i = 0.0f;
-        // RAIDRAID(robertl): Isn't that just
-        // std::fill(_Level.begin(), _Level.end(), 0.0f);
     }
 
-    explicit PeakData(double *pDoubles)
+    PeakData(double *pDoubles)
     {
         SetData(pDoubles);
     }
 
     PeakData &operator=(const PeakData &other)
     {
-        if (this == &other)
-            return *this;
         for (int i = 0; i < NUM_BANDS; i++)
             _Level[i] = other._Level[i];
         return *this;
     }
 
-    float operator[](std::size_t n) const
+    const float operator[](std::size_t n) const
     {
         return _Level[n];
     }
@@ -192,14 +191,17 @@ public:
 
 class SoundAnalyzer : public AudioVariables
 {
-    static constexpr size_t MAX_SAMPLES = 256;
+    //static constexpr size_t MAX_SAMPLES = 256;  // old
+    static constexpr size_t MAX_SAMPLES = 1024;
     std::unique_ptr<int16_t[]> ptrSampleBuffer;
 
     // I'm old enough I can only hear up to about 12K, but feel free to adjust.  Remember from
     // school that you need to sample at double the frequency you want to process, so 24000 is 12K
 
-    static constexpr size_t SAMPLING_FREQUENCY = 20000;
-    static constexpr size_t LOWEST_FREQ = 100;
+    //static constexpr size_t SAMPLING_FREQUENCY = 20000;   // old
+    static constexpr size_t SAMPLING_FREQUENCY = 44100;
+    //static constexpr size_t LOWEST_FREQ = 100; // old
+    static constexpr size_t LOWEST_FREQ = 80;
     static constexpr size_t HIGHEST_FREQ = SAMPLING_FREQUENCY / 2;
 
     static constexpr size_t _sampling_period_us = PERIOD_FROM_FREQ(SAMPLING_FREQUENCY);
@@ -258,7 +260,7 @@ class SoundAnalyzer : public AudioVariables
     // SampleBuffer::FFT
     //
     // Run the FFT on the sample buffer.  When done the first two buckets are VU data and only the first MAX_SAMPLES/2
-    // are valid.  For each bucket afterward you can call BucketFrequency to find out what freq corresponds to what bucket
+    // are valid.  For each bucket afterwards you can call BucketFrequency to find out what freq corresponds to what bucket
 
     void FFT()
     {
@@ -439,7 +441,7 @@ class SoundAnalyzer : public AudioVariables
     }
 
     //
-    // Calculate a logarithmic scale for the bands like you would find on a graphic equalizer display
+    // Calculate a logrithmic scale for the bands like you would find on a graphic equalizer display
     //
 
     void CalculateBandCutoffs(float lowFreq, float highFreq)
@@ -448,7 +450,14 @@ class SoundAnalyzer : public AudioVariables
         {
             static constexpr std::array<int, 16> cutOffs16Band  =
             {
-                200, 380, 580, 780, 980, 1200, 1600, 1800, 2000, 2412, 3162, 3781, 5312, 6310, 8400, (int)HIGHEST_FREQ
+                //200, 380, 580, 780, 980, 1200, 1600, 1800, 2000, 2412, 3162, 3781, 5312, 6310, 8400, (int)HIGHEST_FREQ
+                //40, 60, 100, 150, 250, 400, 650, 1000, 1600, 2500, 4000, 6250, 12000, 14000, 16000, 17000
+                //40, 60, 89, 132, 198, 295, 439, 655, 977, 1456, 2171, 3238, 4827, 7197, 10731, 16000
+                //60, 84, 118, 167, 237, 336, 475, 674, 957, 1360, 1932, 2746, 3904, 5550, 7894, 16000
+                //80, 114, 162, 231, 329, 468, 666, 948, 1350, 1922, 2736, 3895, 5545, 7894, 11239, 16000
+                //85, 121, 171, 242, 344, 487, 691, 979, 1389, 1969, 2792, 3959, 5613, 7958, 11284, 16000
+                //100, 140, 197, 276, 387, 543, 761, 1068, 1498, 2101, 2947, 4134, 5798, 8133, 11407, 16000
+                150, 205, 280, 382, 521, 711, 971, 1326, 1810, 2471, 3374, 4606, 6288, 8585, 11720, 16000
             };
 
             for (int i = 0; i < NUM_BANDS; i++)
@@ -501,19 +510,6 @@ public:
         free(_vReal);
         free(_vImaginary);
         free(_vPeaks);
-    }
-
-    // These functions allow access to the last-acquired sample buffer and its size so that 
-    // effects can draw the waveform or do other things with the raw audio data
-    
-    const int16_t * GetSampleBuffer() const
-    {
-        return ptrSampleBuffer.get();
-    }
-
-    const size_t GetSampleBufferSize() const
-    {
-        return MAX_SAMPLES;
     }
 
     // BeatEnhance
@@ -570,7 +566,7 @@ public:
             ESP_ERROR_CHECK( i2s_set_pin(I2S_NUM_0, &pin_config) );
             ESP_ERROR_CHECK( i2s_start(I2S_NUM_0) );
 
-    #elif TTGO || MESMERIZER || SPECTRUM_WROVER_KIT 
+    #elif TTGO || MESMERIZER || SPECTRUM_WROVER_KIT || DOITV1
 
         i2s_config_t i2s_config;
         i2s_config.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN);
@@ -585,8 +581,26 @@ public:
 
         ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
         ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_0));
-        ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2s_config, 0, nullptr));
+        ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL));
         ESP_ERROR_CHECK(i2s_set_adc_mode(ADC_UNIT_1, ADC1_CHANNEL_0));
+
+    #elif CYDSPEC
+
+        i2s_config_t i2s_config;
+        i2s_config.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN);
+        i2s_config.sample_rate = SAMPLING_FREQUENCY;
+        i2s_config.dma_buf_len = MAX_SAMPLES;
+        i2s_config.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT;
+        i2s_config.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT;
+        i2s_config.use_apll = false;
+        i2s_config.communication_format = I2S_COMM_FORMAT_STAND_I2S;
+        i2s_config.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
+        i2s_config.dma_buf_count = 2;
+
+        ESP_ERROR_CHECK(adc1_config_width(ADC_WIDTH_BIT_12));
+        ESP_ERROR_CHECK(adc1_config_channel_atten(ADC1_CHANNEL_7, ADC_ATTEN_DB_0));
+        ESP_ERROR_CHECK(i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL));
+        ESP_ERROR_CHECK(i2s_set_adc_mode(ADC_UNIT_1, ADC1_CHANNEL_7));
 
     #else
 
@@ -657,14 +671,12 @@ public:
         {
             if (_Peaks[i] > _peak1Decay[i])
             {
-                const float maxIncrease = std::max(0.0, g_Values.AppTime.LastFrameTime() * _peak1DecayRate * VU_REACTIVITY_RATIO);  
-                _peak1Decay[i] = std::min(_Peaks[i], _peak1Decay[i] + maxIncrease);
+                _peak1Decay[i] = _Peaks[i];
                 _lastPeak1Time[i] = millis();
             }
             if (_Peaks[i] > _peak2Decay[i])
             {
-                const float maxIncrease = std::max(0.0, g_Values.AppTime.LastFrameTime() * _peak2DecayRate * VU_REACTIVITY_RATIO);
-                _peak2Decay[i] = std::min(_Peaks[i], _peak2Decay[i] + maxIncrease);
+                _peak2Decay[i] = _Peaks[i];
             }
         }
     }
@@ -710,7 +722,7 @@ public:
             for (int i = 0; i < NUM_BANDS; i++)
                 sum += _Peaks[i];
 
-            // Scale it so that it is not always in the top red
+            // Scale it so that its not always in the top red
             _MicMode = PeakData::PCREMOTE;
             UpdateVU(sum / NUM_BANDS);
         }
