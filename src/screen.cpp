@@ -28,6 +28,7 @@
 // History:     Jul-14-2021         Davepl      Moved out of main.cpp
 //---------------------------------------------------------------------------
 
+#include <algorithm>
 #include "globals.h"
 #include "systemcontainer.h"
 #include "soundanalyzer.h"
@@ -70,9 +71,9 @@ void BasicInfoSummary(bool bRedraw)
 
     // Blue Theme
 
-    #if USE_OLED
+    #if USE_OLED || USE_KS0108
         const uint16_t bkgndColor = BLACK16;
-    #elif AMOLED_S3
+    #elif AMOLED_S3 || CYDSPEC
         const uint16_t bkgndColor  = Screen::to16bit(CRGB::Black);
         const uint16_t borderColor = Screen::to16bit(CRGB::Red);
         const uint16_t textColor   = Screen::to16bit(CRGB(100, 255, 20));
@@ -106,9 +107,9 @@ void BasicInfoSummary(bool bRedraw)
     else
         display.setTextSize(1);
 
-    #if USE_OLED
+    #if USE_OLED || USE_KS0108
         display.setTextColor(WHITE16, BLACK16);
-    #else
+    #else 
         display.setTextColor(textColor, bkgndColor); // Second color is background color, giving us text overwrite
     #endif
 
@@ -218,6 +219,11 @@ void BasicInfoSummary(bool bRedraw)
             display.fillRect(xMargin + 1, top, filled, height, WHITE16);
             display.fillRect(xMargin + filled, top, width - filled, height, BLACK16);
             display.drawRect(xMargin, top, width, height, WHITE16);
+        #elif USE_KS0108
+            display.drawRect(0, 0, display.width(), display.height(), WHITE16);
+            //display.fillRect(xMargin + 1, top, filled, height, WHITE16);
+            //display.fillRect(xMargin + filled, top, width - filled, height, BLACK16);
+            //display.drawRect(xMargin, top, width, height, WHITE16);
         #else
             display.fillRect(xMargin + 1, top + 1, filled, height - 2, color);
             display.fillRect(xMargin + filled, top + 1, width - filled, height - 2, bkgndColor);
@@ -239,28 +245,19 @@ void CurrentEffectSummary(bool bRedraw)
     auto& display = g_ptrSystem->Display();
     display.StartFrame();
 
-    // Force a full redraw if we've changed to a new display page
-    
-    static auto lastPage = g_InfoPage;
-    if (lastPage != g_InfoPage)
-    {
-        lastPage = g_InfoPage;
-        bRedraw = true;
-    }
-
     if (bRedraw)
         display.fillScreen(BLACK16);
 
-    #if ARDUINO_HELTEC_WIFI_LORA_32_V3
-        uint16_t backColor = Screen::to16bit(CRGB(0, 0, 0));
-    #else
+    #if USE_OLED || USE_KS0108
+        uint16_t backColor = BLACK16;
+    #else 
         uint16_t backColor = Screen::to16bit(CRGB(0, 0, 64));
     #endif
 
     // We only draw after a page flip or if anything has changed about the information that will be
     // shown in the page. This avoids flicker, but at the cost that we have to remember what we displayed
     // last time and check each time to see if its any different before drawing.
-
+/*
     static auto lasteffect = g_ptrSystem->EffectManager().GetCurrentEffectIndex();
     static auto sip = WiFi.localIP().toString();
     static auto lastFPS = g_Values.FPS;
@@ -279,7 +276,7 @@ void CurrentEffectSummary(bool bRedraw)
         screenFPS = 1.0f / screenFPS;
     lastScreen = millis();
 
-    if (bRedraw || lastFullDraw == 0 || millis() - lastFullDraw > 1000)
+    if (lastFullDraw == 0 || millis() - lastFullDraw > 1000)
     {
         lastFullDraw = millis();
         if (bRedraw != false ||
@@ -296,8 +293,9 @@ void CurrentEffectSummary(bool bRedraw)
             lastFPS = g_Values.FPS;
 
             //display.setFont();
-            display.setTextColor(YELLOW16, backColor);
-            String sEffect = String("Effect: ") +
+            display.setTextColor(WHITE16, backColor);
+            //display.setTextColor(YELLOW16, backColor);
+            String sEffect = String("Current Effect: ") +
                              String(g_ptrSystem->EffectManager().GetCurrentEffectIndex() + 1) +
                              String("/") +
                              String(g_ptrSystem->EffectManager().EffectCount());
@@ -313,13 +311,15 @@ void CurrentEffectSummary(bool bRedraw)
             yh += display.fontHeight();
 
             String sIP = WiFi.isConnected() ? WiFi.localIP().toString().c_str() : "No Wifi";
-            display.setTextColor(YELLOW16, backColor);
+            //display.setTextColor(YELLOW16, backColor);
+            display.setTextColor(WHITE16, backColor);
             w = display.textWidth(sIP);
             display.setCursor(display.width() / 2 - w / 2, yh);
             yh += display.fontHeight();
             display.print(sIP);
         }
-
+*/
+/*
 #if ENABLE_AUDIO
         if (SHOW_FPS && ((lastFPS != g_Values.FPS) || (lastAudio != g_Analyzer._AudioFPS) || (lastSerial != g_Analyzer._serialFPS)))
         {
@@ -327,7 +327,8 @@ void CurrentEffectSummary(bool bRedraw)
             lastSerial = g_Analyzer._serialFPS;
             lastAudio = g_Analyzer._AudioFPS;
             display.fillRect(0, display.height() - display.BottomMargin, display.width(), 1, BLUE16);
-            display.setTextColor(YELLOW16, backColor);
+            //display.setTextColor(YELLOW16, backColor);
+            display.setTextColor(WHITE16, backColor);
             display.setTextSize(1);
             yh = display.height() - display.fontHeight();
             String strOut = str_sprintf(" LED: %2d  Aud: %2d Ser:%2d Scr: %02d", g_Values.FPS, g_Analyzer._AudioFPS, g_Analyzer._serialFPS, (int) screenFPS);
@@ -337,7 +338,8 @@ void CurrentEffectSummary(bool bRedraw)
             yh += display.fontHeight();
         }
 #endif
-    }
+*/
+ //   }
 
 #if ENABLE_AUDIO
 
@@ -351,19 +353,19 @@ void CurrentEffectSummary(bool bRedraw)
     int cPixels = 16;
     float xSize = xHalf / cPixels + 1;                          // xSize is count of pixels in each block
     int litBlocks = (g_Analyzer._VURatioFade / 2.0f) * cPixels; // litPixels is number that are lit
-
+    const int topMargin1 = 0;
     for (int iPixel = 0; iPixel < cPixels; iPixel++) // For each pixel
     {
         uint16_t color16 = iPixel > litBlocks ? BLACK16 : display.to16bit(ColorFromPalette(vuPaletteGreen, iPixel * (256 / (cPixels))));
-        display.fillRect(xHalf - iPixel * xSize, topMargin, xSize - 1, ySizeVU, color16);
-        display.fillRect(xHalf + iPixel * xSize, topMargin, xSize - 1, ySizeVU, color16);
+        display.fillRect(xHalf - iPixel * xSize, topMargin1, xSize - 1, ySizeVU, color16);
+        display.fillRect(xHalf + iPixel * xSize, topMargin1, xSize - 1, ySizeVU, color16);
     }
 
     // Draw the spectrum analyzer bars
 
-    const int spectrumTop = topMargin + ySizeVU + 1; // Start at the bottom of the VU meter
-    const int bandHeight = display.height() - spectrumTop - display.BottomMargin;
-
+    const int spectrumTop = topMargin1 + ySizeVU + 1; // Start at the bottom of the VU meter
+    //const int bandHeight = display.height() - spectrumTop - display.BottomMargin;
+    const int bandHeight = display.height() - spectrumTop;
     for (int iBand = 0; iBand < NUM_BANDS; iBand++)
     {
         CRGB bandColor = ColorFromPalette(RainbowColors_p, ((int)map(iBand, 0, NUM_BANDS, 0, 255) + 0) % 256);
@@ -484,23 +486,9 @@ void IRAM_ATTR ScreenUpdateLoopEntry(void *)
             Button2.update();
             if (Button2.pressed())
             {
-                if (g_InfoPage == 1)
-                {
-                    // If we're on the effect summary page, the button advances the effect
-                    debugI("Button 2 pressed on pin %d so advancing to next effect", TOGGLE_BUTTON_2);
-                    g_ptrSystem->EffectManager().NextEffect();
-                    bRedraw = true;
-                }
-                else if (g_InfoPage == 0)
-                {
-                    // If we're on the debug page the button will reduce the brightness                    
-                    static int brightness = 255;
-                    brightness /= 2;
-                    if (brightness < 4)
-                        brightness = 255;
-                    auto &deviceConfig = g_ptrSystem->DeviceConfig();
-                    deviceConfig.SetBrightness(brightness);
-                }
+                debugI("Button 2 pressed on pin %d so advancing to next effect", TOGGLE_BUTTON_2);
+                g_ptrSystem->EffectManager().NextEffect();
+                bRedraw = true;
             }
         #endif
 
